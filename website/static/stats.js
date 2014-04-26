@@ -376,31 +376,14 @@ function displayCharts(){
             data: poolBlockData[i].values,
 			pointWidth: columnWidth
 		});
+		for (var pool in statData.pools) {
+			var tempTotalMined = Number(stats.pools[pool].poolStats.totalPaid);
+			console.log("Worked Temp totalMined: " + tempTotalMined);
+			$('#statsTotalPaid' + pool).text(tempTotalMined.toFixed());
+			console.log("Worked Temp totalMined: " + tempTotalMined.toFixed());
+		}
 	}
 	//console.log("Charts displayed.");
-}
-
-function displayStats() { 
-
-}
-
-function TriggerChartUpdates(){
-	for(var i = 0; i < poolKeys.length; i++) {
-		var pool = poolKeys[i];
-		if(poolWorkerChart.series[i].name == pool) {
-			poolWorkerChart.series[i].setData(poolWorkerData[i].values);
-			console.log("Updated poolWorkerChart: " + poolWorkerChart.series[i].name + "'s Data!");
-		}
-		if(poolHashrateChart.series[i].name == pool) {
-			poolHashrateChart.series[i].setData(poolHashrateData[i].values);
-			console.log("Updated poolHashRateChart: " + poolHashrateChart.series[i].name + "'s Data!");
-		}
-		if(poolBlockChart.series[i].name == pool) {
-			poolBlockChart.series[i].setData(poolBlockData[i].values);
-			console.log("Updated poolBlockChart: " + poolBlockChart.series[i].name + "'s Data!");
-		}
-	}
-	console.log("time to update: " + (new Date().getTime() - timeHolder));
 }
 
 $(function() {
@@ -410,11 +393,6 @@ $(function() {
 		statData = data;
 		buildChartData();
 		displayCharts();
-		for (var pool in statData.pools) {
-			var tempTotalMined = (statData.pools[pool].poolStats.totalMined).toFixed();
-			$('#statsTotalPaid' + pool).text(tempTotalMined);
-			
-		}
 		console.log("time to load page: " + (new Date().getTime() - timeHolder));
 	});
 });
@@ -437,7 +415,6 @@ statsSource.addEventListener('message', function(e){
 		console.log("displayingCharts again?!?!?!");
 		buildChartData();
 		displayCharts();
-		displayStats();
 	}
 	else {
 		timeHolder = new Date().getTime();
@@ -445,9 +422,9 @@ statsSource.addEventListener('message', function(e){
 		
 		for (var f = 0; f < poolKeys.length; f++) {
 			var pool =  poolKeys[f];
-			console.log(pool);
+			console.log("Recieved Message, Updating Pool: " + pool);
 			
-			//console.log("poolWorkerData length: " + poolWorkerData.length);
+			console.log("poolWorkerData length: " + poolWorkerData.length);
 			for (var i = 0; i < poolWorkerData.length; i++) {
 				if (poolWorkerData[i].key === pool) {
 					poolWorkerData[i].values.shift();
@@ -455,31 +432,31 @@ statsSource.addEventListener('message', function(e){
 					if(poolWorkerChart.series[f].name == pool) {
 						console.log("point added to workerChart: " + ([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]));
 						poolWorkerChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]);
-						//console.log("Updated poolWorkerChart: " + poolWorkerChart.series[f].name + "'s Data!");
+						console.log("Updated poolWorkerChart: " + poolWorkerChart.series[f].name + "'s Data!");
 					}
 					break;
 				}
 			}
-			//console.log("poolHashrateData length: " + poolHashrateData.length);
+			console.log("poolHashrateData length: " + poolHashrateData.length);
 			for (var i = 0; i < poolHashrateData.length; i++) {
 				if (poolHashrateData[i].key === pool) {
 					poolHashrateData[i].values.shift();
 					poolHashrateData[i].values.push([time, pool in stats.pools ? stats.pools[pool].hashrate : 0]);
 					if(poolHashrateChart.series[f].name == pool) {
 						poolHashrateChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].hashrate : 0]);
-						//console.log("Updated poolHashRateChart: " + poolHashrateChart.series[f].name + "'s Data!");
+						console.log("Updated poolHashRateChart: " + poolHashrateChart.series[f].name + "'s Data!");
 					}
 					break;
 				}
 			}
-			//console.log("poolBlockData length: " + poolBlockData.length);
+			console.log("poolBlockData length: " + poolBlockData.length);
 			for (var i = 0; i < poolBlockData.length; i++) {
 				if (poolBlockData[i].key === pool) {
 					poolBlockData[i].values.shift();
 					poolBlockData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
 					if(poolBlockChart.series[f].name == pool) {
 						poolBlockChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
-						//console.log("Updated poolBlockChart: " + poolBlockChart.series[f].name + "'s Data!");
+						console.log("Updated poolBlockChart: " + poolBlockChart.series[f].name + "'s Data!");
 					}
 					break;
 				}
@@ -488,11 +465,14 @@ statsSource.addEventListener('message', function(e){
 		console.log("time to update graph: " + (new Date().getTime() - timeHolder));
 	}
 	for (var pool in stats.pools) {
-		var tempTotalMined = Number(stats.pools[pool].poolStats.totalPaid);
-		console.log("Temp totalMined: " + tempTotalMined);
 		$('#statsValidShares' + pool).text(stats.pools[pool].poolStats.validShares);
-		$('#statsTotalPaid' + pool).text(tempTotalMined.toFixed());
-		console.log("Temp totalMined: " + tempTotalMined.toFixed());
+		$('#statsInvalidShares' + pool).text(stats.pools[pool].poolStats.invalidShares);
+		$('#statsValidBlocks' + pool).text(stats.pools[pool].poolStats.validBlocks);
+		$('#statsTotalPaid' + pool).text(Number(stats.pools[pool].poolStats.totalPaid).toFixed());
+		
+		$('#statsBlocksPending' + pool).text(stats.pools[pool].blocks.pending);
+		$('#statsBlocksConfirmed' + pool).text(stats.pools[pool].blocks.confirmed);
+		$('#statsBlocksOrphaned' + pool).text(stats.pools[pool].blocks.orphaned);
 	}
 	console.log("time to update static-stats: " + (new Date().getTime() - timeHolder));
 });
