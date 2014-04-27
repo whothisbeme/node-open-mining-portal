@@ -1,6 +1,7 @@
 var poolWorkerData;
 var poolHashrateData;
-var poolBlockConfirmedData;
+var poolBlockPendingData;
+var poolBlockPerHourData;
 
 var poolWorkerChart;
 var poolHashrateChart;
@@ -10,9 +11,43 @@ var poolBlockPerHourChart;
 var statData = [];
 var poolKeys = [];
 
-var timeHolder;
+var timeHolder; //Temporary
+
+
+function buildBlocksPerHourChart() {
+
+	//First try to guess updateInterval
+	var guessedUpdateInterval = (statData[1].time - statData[0].time); 
+	var guessedHistoryRetentionTime = (statData.length * guessedUpdateInterval);
+	var guessedHoursHTR = (guessedHistoryRetentionTime / 3600);
+	console.log("Guessed updateInterval is: " + guessedUpdateInterval + " seconds.");
+	console.log("Guessed HistoryRetention is set to: " + guessedHistoryRetentionTime + " seconds.");
+	console.log("Guessed Hours in history retention set to: " + guessedHoursHTR.toFixed() + " hours.");
+	
+	var sliceCounter = 10;
+	
+	var sliceTimes = [];
+	var statDataChunks = [];
+	var timeNow = (Date.now() / 1000);
+	for(var n = 1; n < guessedHoursHTR.toFixed(); n++) {
+		sliceTimes.push([(timeNow - (3600*n)) | 0]);
+		console.log(sliceTimes);
+	}
+	
+	for (var i = 0; i < statData.length; i++){
+		if (sliceTimes[sliceCounter] < statData[i].time){
+			if (i > 0) {
+				console.log("Slicing at time: " + statData[i].time + " Slice counter now at: " + sliceCounter);
+				sliceCounter --;
+				statDataChunks.push(statData.slice(i));
+			}
+		}
+	}
+}
 
 function buildChartData(interval){
+	
+	console.log("Points to start with: " + (statData.length));
 	
 	//First cut down chartData to selected timeInterval
 	var retentionTime = (((Date.now() / 1000) - interval) | 0);
@@ -103,6 +138,15 @@ function buildChartData(interval){
     }
 }
 
+function removeSeries() {
+	 for (var p = 0; p < poolKeys.length; p++){
+		poolWorkerChart.series[p].remove(false);
+		poolHashrateChart.series[p].remove(false);
+		poolBlockPendingChart.series[p].remove(false);
+		poolBlockPerHourChart.series[p].remove(false);
+	 }
+}
+
 function getReadableHashRateString(hashrate, version){
 	if(version == 'default') {
 		var i = -1;
@@ -145,6 +189,27 @@ function timeOfDayFormat(timestamp){
     var tempTime = moment(timestamp).format('MMM Do - h:mm A');
     if (tempTime.indexOf('0') === 0) tempTime = tempTime.slice(1);
     return tempTime;
+}
+
+//Beta timeChange function
+function changeGraphTimePeriod(timePeriod, sender) {
+	timeHolder = new Date().getTime();
+	removeSeries();
+	$.getJSON('/api/pool_stats', function (data) {
+		statData = data;
+		console.log("Got statData...");
+		buildChartData(timePeriod); //Set interval
+		console.log("Chart data built..");
+		displayCharts();
+		console.log("Charts displayed..");
+		console.log("time to changeTimePeriod: " + (new Date().getTime() - timeHolder));
+	});
+	
+	$('#scale_menu li a').removeClass('pure-button-active');
+    $('#' + sender).addClass('pure-button-active');
+	console.log("Comepleted timePeriodChange.");
+	//$('#graphSelectorDropdown').animate({'height': '250px'},600);
+	//$('#graphSelectorDropdown').animate({'height': '100%'},1200);
 }
 
 function createCharts() {
@@ -451,13 +516,13 @@ function displayCharts(){
             type: 'column',
             name: poolBlockPendingData[i].key,
             data: poolBlockPendingData[i].values,
-			pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - ((poolBlockPendingChart.chartWidth / statData.length) / 4)) //Adjust width of bars need to do this more than once
+			pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - 3) //Adjust width of bars need to do this more than once
 		});
 		poolBlockPerHourChart.addSeries({
             type: 'column',
             name: poolBlockConfirmedData[i].key,
             data: poolBlockConfirmedData[i].values,
-			pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - ((poolBlockPerHourChart.chartWidth / statData.length) / 4)) //Adjust width of bars need to do this more than once
+			pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - 3) //Adjust width of bars need to do this more than once
 		});
 	}
 }
@@ -470,6 +535,7 @@ $(function() {
  $.getJSON('/api/pool_stats', function (data) {
 	statData = data;
 	console.log("Charts created..");
+	buildBlocksPerHourChart();
 	buildChartData(3600); //Set interval
 	console.log("Chart data built..");
 	displayCharts();
