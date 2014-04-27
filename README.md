@@ -51,11 +51,8 @@ Each and every share will be rewarded - even for rounds resulting in orphaned bl
 authentication. A minimalistic HTML5 front-end connects to the portals statistics API to display stats from from each
 pool such as connected miners, network/pool difficulty/hash rate, etc.
 
-* Automated switching of connected miners to different pools/coins is also easily done due to the multi-pool architecture
-of this software. To use this feature the switching must be controlled by your own script, such as one that calculates
-coin profitability via an API such as CoinChoose.com or CoinWarz.com (or calculated locally using daemon-reported network
-difficulties and exchange APIs). NOMP's regular payment processing and miner authentication which using coin address as stratum
-username will obviously not work with this coin switching feature - so you must control those with your own script as well.
+* Coin-switching ports using coin-networks and crypto-exchange APIs to detect profitability. Miner's connect to these ports
+with their public key which NOMP uses to derive an address for any coin needed to be paid out.
 
 
 #### Attack Mitigation
@@ -212,43 +209,66 @@ Explanation for each field:
     },
 
 
-    /* In a proxy configuration, you can setup ports that accept miners for work based on a
-       specific algorithm instead of a specific coin.  Miners that connect to these ports are
+    /* With this switching configuration, you can setup ports that accept miners for work based on
+       a specific algorithm instead of a specific coin. Miners that connect to these ports are
        automatically switched a coin determined by the server. The default coin is the first
        configured pool for each algorithm and coin switching can be triggered using the
        cli.js script in the scripts folder.
 
-       Please note miner address authentication must be disabled when using NOMP in a proxy
-       configuration and that payout processing is left up to the server administrator. */
-    "proxy": {
-        "sha256": {
+       Miners connecting to these switching ports must use their public key in the format of
+       RIPEMD160(SHA256(public-key)). An address for each type of coin is derived from the miner's
+       public key, and payments are sent to that address. */
+    "switching": {
+        "switch1": {
             "enabled": false,
-            "port": "3333",
-            "diff": 10,
-            "varDiff": {
-                "minDiff": 16, //Minimum difficulty
-                "maxDiff": 512, //Network difficulty will be used if it is lower than this
-                "targetTime": 15, //Try to get 1 share per this many seconds
-                "retargetTime": 90, //Check to see if we should retarget every this many seconds
-                "variancePercent": 30 //Allow time to very this % from target without retargeting
+            "algorithm": "sha256",
+            "ports": {
+                "3333": {
+                    "diff": 10,
+                    "varDiff": {
+                        "minDiff": 16,
+                        "maxDiff": 512,
+                        "targetTime": 15,
+                        "retargetTime": 90,
+                        "variancePercent": 30
+                    }
+                }
             }
         },
-        "scrypt": {
+        "switch2": {
             "enabled": false,
-            "port": "4444",
-            "diff": 10,
-            "varDiff": {
-                "minDiff": 16, //Minimum difficulty
-                "maxDiff": 512, //Network difficulty will be used if it is lower than this
-                "targetTime": 15, //Try to get 1 share per this many seconds
-                "retargetTime": 90, //Check to see if we should retarget every this many seconds
-                "variancePercent": 30 //Allow time to very this % from target without retargeting
+            "algorithm": "scrypt",
+            "ports": {
+                "4444": {
+                    "diff": 10,
+                    "varDiff": {
+                        "minDiff": 16,
+                        "maxDiff": 512,
+                        "targetTime": 15,
+                        "retargetTime": 90,
+                        "variancePercent": 30
+                    }
+                }
             }
         },
-        "scrypt-n": {
+        "switch3": {
             "enabled": false,
-            "port": "5555"
+            "algorithm": "x11",
+            "ports": {
+                "5555": {
+                    "diff": 0.001
+                }
+            }
         }
+    },
+
+    "profitSwitch": {
+        "enabled": false,
+        "updateInterval": 600,
+        "depth": 0.90,
+        "usePoloniex": true,
+        "useCryptsy": true,
+        "useMintpal": true
     }
 }
 ````
