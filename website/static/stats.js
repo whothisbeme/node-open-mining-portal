@@ -1,18 +1,31 @@
 var poolWorkerData;
 var poolHashrateData;
-var poolBlockData;
+var poolBlockConfirmedData;
 
 var poolWorkerChart;
 var poolHashrateChart;
-var poolBlockChart;
+var poolBlockPendingChart;
+var poolBlockPerHourChart;
 
-var statData;
-var poolKeys;
+var statData = [];
+var poolKeys = [];
 
 var timeHolder;
 
-function buildChartData(){
-
+function buildChartData(interval){
+	
+	//First cut down chartData to selected timeInterval
+	var retentionTime = (((Date.now() / 1000) - interval) | 0);
+	for (var i = 0; i < statData.length; i++){
+		if (retentionTime < statData[i].time){
+			if (i > 0) {
+				console.log("Slicing at time: " + statData[i].time);
+				statData = statData.slice(i);
+			}
+			break;
+		}
+	}
+	
     var pools = {};
 	
     poolKeys = [];
@@ -44,18 +57,21 @@ function buildChartData(){
             var a = pools[pName] = (pools[pName] || {
                 hashrate: [],
                 workers: [],
-                blocks: []
+                blocksPending: [],
+				blocksConfirmed: []
             });
 			
             if (pName in statData[i].pools){
                 a.hashrate.push([time, statData[i].pools[pName].hashrate]);
                 a.workers.push([time, statData[i].pools[pName].workerCount]);
-                a.blocks.push([time, statData[i].pools[pName].blocks.pending]);
+                a.blocksPending.push([time, statData[i].pools[pName].blocks.pending]);
+				a.blocksConfirmed.push([time, statData[i].pools[pName].blocks.confirmed]);
             }
             else{
                 a.hashrate.push([time, 0]);
                 a.workers.push([time, 0]);
-                a.blocks.push([time, 0]);
+                a.blocksPending.push([time, 0]);
+				a.blocksConfirmed.push([time, 0]);
             }
 
         }
@@ -64,7 +80,8 @@ function buildChartData(){
 	
     poolWorkerData = [];
     poolHashrateData = [];
-    poolBlockData = [];
+    poolBlockPendingData = [];
+	poolBlockConfirmedData = [];
 
     for (var pool in pools){
         poolWorkerData.push({
@@ -75,9 +92,13 @@ function buildChartData(){
             key: pool,
             values: pools[pool].hashrate
         });
-        poolBlockData.push({
+        poolBlockPendingData.push({
             key: pool,
-            values: pools[pool].blocks
+            values: pools[pool].blocksPending
+        });
+		poolBlockConfirmedData.push({
+            key: pool,
+            values: pools[pool].blocksConfirmed
         });
     }
 }
@@ -190,7 +211,6 @@ function createCharts() {
 		},
 		plotOptions: {
 			area: {
-				stacking: 'normal',
 				lineWidth: 1,
 				marker: {
 					enabled: false
@@ -241,7 +261,6 @@ function createCharts() {
 				text: null
 			},
 			min: 0,
-			floor: 0,
 		},
 		tooltip: {
 			shared: true,
@@ -280,7 +299,7 @@ function createCharts() {
 		}, 
 		series: []
 	});
-	poolBlockChart = new Highcharts.Chart({
+	poolBlockPendingChart = new Highcharts.Chart({
 		chart: {
 			renderTo: 'poolBlockChart',
 			backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -297,6 +316,72 @@ function createCharts() {
 		},
 		title: {
 			text: 'Blocks Pending Per Pool'
+		},
+		xAxis: {
+			type: 'datetime',
+			dateTimeLabelFormats: {
+				second: '%I:%M:%S %p',
+				minute: '%I:%M %p',
+				hour: '%I:%M %p',
+				day: '%I:%M %p',
+			},
+			title: {
+				text: null
+			}
+		},
+		yAxis: {
+			labels: {
+				
+			},
+			title: {
+				text: null
+			},
+			min: 0,
+		},
+		tooltip: {
+			shared: true,
+			crosshairs: false,
+			formatter: function () {
+				var s = '<b>' + timeOfDayFormat(this.x) + '</b>';
+
+				$.each(this.points, function (i, point) {
+					s += '<br/> <span style="fill:' + point.series.color + '" x="8" dy="16">●</span> ' + point.series.name + ': ' + point.y;
+				});
+				return s;
+			},
+		},
+		legend: {
+			enabled: true,
+			borderWidth: 0
+		},
+		plotOptions: {
+			 column: {
+					pointWidth: 15,
+					pointRange: 0,
+					pointPadding: 0,
+					borderWidth: 0
+			}
+		}, 
+		series: []
+	});
+	
+	poolBlockPerHourChart = new Highcharts.Chart({
+		chart: {
+			renderTo: 'tempBlockChart',
+			backgroundColor: 'rgba(255, 255, 255, 0.1)',
+			animation: true,
+            shadow: false,
+			borderWidth: 0,
+			zoomType: 'x',
+		},
+		credits: {
+			enabled: false
+		},
+		exporting: {
+			enabled: false
+		},
+		title: {
+			text: 'Blocks Confirmed Per Hour Per Pool'
 		},
 		xAxis: {
 			type: 'datetime',
@@ -362,24 +447,33 @@ function displayCharts(){
             data: poolHashrateData[i].values,
             lineWidth: 2
 		});
-		poolBlockChart.addSeries({
+		poolBlockPendingChart.addSeries({
             type: 'column',
-            name: poolBlockData[i].key,
-            data: poolBlockData[i].values,
-			pointWidth: ((poolHashrateChart.chartWidth / statData.length) + 1) //Adjust width of bars need to do this more than once
+            name: poolBlockPendingData[i].key,
+            data: poolBlockPendingData[i].values,
+			pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - ((poolBlockPendingChart.chartWidth / statData.length) / 4)) //Adjust width of bars need to do this more than once
+		});
+		poolBlockPerHourChart.addSeries({
+            type: 'column',
+            name: poolBlockConfirmedData[i].key,
+            data: poolBlockConfirmedData[i].values,
+			pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - ((poolBlockPerHourChart.chartWidth / statData.length) / 4)) //Adjust width of bars need to do this more than once
 		});
 	}
 }
 
 $(function() {
 	timeHolder = new Date().getTime();
+	createCharts(); //Possible Temporary Placement
 });
 
  $.getJSON('/api/pool_stats', function (data) {
 	statData = data;
-	createCharts(); //Only need to create charts one time
-	buildChartData();
+	console.log("Charts created..");
+	buildChartData(3600); //Set interval
+	console.log("Chart data built..");
 	displayCharts();
+	console.log("Charts displayed..");
 	console.log("time to load page: " + (new Date().getTime() - timeHolder));
 });
 
@@ -417,6 +511,7 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 					poolWorkerData[i].values.shift();
 					poolWorkerData[i].values.push([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]);
 					if(poolWorkerChart.series[f].name == pool) {
+						console.log("length of series: " + poolWorkerChart.series.length);
 						//console.log("point added to workerChart: " + ([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]));
 						poolWorkerChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]);
 						//console.log("Updated poolWorkerChart: " + poolWorkerChart.series[f].name + "'s Data!");
@@ -436,14 +531,14 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 					break;
 				}
 			}
-			//console.log("poolBlockData length: " + poolBlockData.length);
-			for (var i = 0; i < poolBlockData.length; i++) {
-				if (poolBlockData[i].key === pool) {
-					poolBlockData[i].values.shift();
-					poolBlockData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
-					if(poolBlockChart.series[f].name == pool) {
-						poolBlockChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
-						//console.log("Updated poolBlockChart: " + poolBlockChart.series[f].name + "'s Data!");
+			//console.log("poolBlockConfirmedData length: " + poolBlockConfirmedData.length);
+			for (var i = 0; i < poolBlockConfirmedData.length; i++) {
+				if (poolBlockConfirmedData[i].key === pool) {
+					poolBlockConfirmedData[i].values.shift();
+					poolBlockConfirmedData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+					if(poolBlockPendingChart.series[f].name == pool) {
+						poolBlockPendingChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+						//console.log("Updated poolBlockPendingChart: " + poolBlockPendingChart.series[f].name + "'s Data!");
 					}
 					break;
 				}
