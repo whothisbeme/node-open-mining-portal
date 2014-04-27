@@ -7,7 +7,7 @@ var poolHashrateChart;
 var poolBlockChart;
 
 var statData;
-var poolKeys = [];
+var poolKeys;
 
 var timeHolder;
 
@@ -154,9 +154,10 @@ function createCharts() {
 		xAxis: {
 			type: 'datetime',
 			dateTimeLabelFormats: {
+				second: '%I:%M:%S %p',
+				minute: '%I:%M %p',
 				hour: '%I:%M %p',
 				day: '%I:%M %p',
-				week: '%I:%M %p'
 			},
 			title: {
 				text: null
@@ -204,7 +205,7 @@ function createCharts() {
 		chart: {
 			renderTo: 'poolHashRateChart',
 			backgroundColor: 'rgba(255, 255, 255, 0.1)',
-			animation: false,
+			animation: true,
             shadow: false,
 			borderWidth: 0,
 			zoomType: 'x',
@@ -221,11 +222,15 @@ function createCharts() {
 		xAxis: {
 			type: 'datetime',
 			dateTimeLabelFormats: {
-				hour: '%I:%M %p'
+				second: '%I:%M:%S %p',
+				minute: '%I:%M %p',
+				hour: '%I:%M %p',
+				day: '%I:%M %p',
 			},
 			title: {
 				text: null
-			}
+			},
+			minRange: 36000,
 		},
 		yAxis: {
 			labels: {
@@ -237,6 +242,7 @@ function createCharts() {
 				text: null
 			},
 			min: 0,
+			floor: 0,
 		},
 		tooltip: {
 			shared: true,
@@ -271,7 +277,7 @@ function createCharts() {
 					}
 				},
 				threshold: null,
-				animation: false
+				animation: true
 			},
 			spline: {
 				marker: {
@@ -285,7 +291,7 @@ function createCharts() {
 					}
 				},
 				threshold: null,
-				animation: false
+				animation: true
 			},
 		}, 
 		series: []
@@ -294,10 +300,23 @@ function createCharts() {
 		chart: {
 			renderTo: 'poolBlockChart',
 			backgroundColor: 'rgba(255, 255, 255, 0.1)',
-			animation: false,
+			animation: true,
             shadow: false,
 			borderWidth: 0,
-			zoomType: 'x', 
+			zoomType: 'x',
+			events : {
+				load : function() {
+					setInterval(function() {
+						for (var f = 0; f < poolKeys.length; f++) {
+							var pool =  poolKeys[f];
+							if(poolBlockChart.series[f].name == pool) {
+								poolBlockChart.series[f].update({pointWidth:((poolHashrateChart.chartWidth / statData.length) + 1)}, false);
+								console.log("Updated blockChart pointWidth to: " + ((poolHashrateChart.chartWidth / statData.length) + 1));
+							}
+						}
+					}, 60000);
+				}
+			},
 		},
 		credits: {
 			enabled: false
@@ -311,7 +330,10 @@ function createCharts() {
 		xAxis: {
 			type: 'datetime',
 			dateTimeLabelFormats: {
-				hour: '%I:%M %p'
+				second: '%I:%M:%S %p',
+				minute: '%I:%M %p',
+				hour: '%I:%M %p',
+				day: '%I:%M %p',
 			},
 			title: {
 				text: null
@@ -368,22 +390,13 @@ function displayCharts(){
             data: poolHashrateData[i].values,
             lineWidth: 2
 		});
-		var columnWidth = ((poolHashrateChart.chartWidth / statData.length) + 1);
-		console.log(columnWidth);
 		poolBlockChart.addSeries({
             type: 'column',
             name: poolBlockData[i].key,
             data: poolBlockData[i].values,
-			pointWidth: columnWidth
+			pointWidth: ((poolHashrateChart.chartWidth / statData.length) + 1) //Adjust width of bars
 		});
-		for (var pool in statData.pools) {
-			var tempTotalMined = Number(stats.pools[pool].poolStats.totalPaid);
-			console.log("Worked Temp totalMined: " + tempTotalMined);
-			$('#statsTotalPaid' + pool).text(tempTotalMined.toFixed());
-			console.log("Worked Temp totalMined: " + tempTotalMined.toFixed());
-		}
 	}
-	//console.log("Charts displayed.");
 }
 
 $(function() {
@@ -394,85 +407,85 @@ $(function() {
 		buildChartData();
 		displayCharts();
 		console.log("time to load page: " + (new Date().getTime() - timeHolder));
-	});
-});
-
-statsSource.addEventListener('message', function(e){
-	var stats = JSON.parse(e.data);
-	
-	statData.push(stats);
-	console.log("parsed some stuff");
-
-	var newPoolAdded = (function(){
-		for (var p in stats.pools){
-			if (poolKeys.indexOf(p) === -1)
-				return true;
-		}
-		return false;
-	})();
-
-	if (newPoolAdded || Object.keys(stats.pools).length > poolKeys.length){
-		console.log("displayingCharts again?!?!?!");
-		buildChartData();
-		displayCharts();
-	}
-	else {
-		timeHolder = new Date().getTime();
-		var time = stats.time * 1000;
-		
-		for (var f = 0; f < poolKeys.length; f++) {
-			var pool =  poolKeys[f];
-			console.log("Recieved Message, Updating Pool: " + pool);
+		statsSource.addEventListener('message', function(e){
+			var stats = JSON.parse(e.data);
 			
-			console.log("poolWorkerData length: " + poolWorkerData.length);
-			for (var i = 0; i < poolWorkerData.length; i++) {
-				if (poolWorkerData[i].key === pool) {
-					poolWorkerData[i].values.shift();
-					poolWorkerData[i].values.push([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]);
-					if(poolWorkerChart.series[f].name == pool) {
-						console.log("point added to workerChart: " + ([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]));
-						poolWorkerChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]);
-						console.log("Updated poolWorkerChart: " + poolWorkerChart.series[f].name + "'s Data!");
-					}
-					break;
+			statData.push(stats);
+			console.log("parsed some stuff");
+
+			var newPoolAdded = (function(){
+				for (var p in stats.pools){
+					if (poolKeys.indexOf(p) === -1)
+						return true;
 				}
+				return false;
+			})();
+
+			if (newPoolAdded || Object.keys(stats.pools).length > poolKeys.length){
+				console.log("displayingCharts again?!?!?!");
+				console.log("Object.keys(stats.pools).length: " + Object.keys(stats.pools).length);
+				console.log("poolKeys.length: " + poolKeys.length);
+				buildChartData();
 			}
-			console.log("poolHashrateData length: " + poolHashrateData.length);
-			for (var i = 0; i < poolHashrateData.length; i++) {
-				if (poolHashrateData[i].key === pool) {
-					poolHashrateData[i].values.shift();
-					poolHashrateData[i].values.push([time, pool in stats.pools ? stats.pools[pool].hashrate : 0]);
-					if(poolHashrateChart.series[f].name == pool) {
-						poolHashrateChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].hashrate : 0]);
-						console.log("Updated poolHashRateChart: " + poolHashrateChart.series[f].name + "'s Data!");
+			else {
+				timeHolder = new Date().getTime(); //Temporary
+				var time = stats.time * 1000;
+				
+				for (var f = 0; f < poolKeys.length; f++) {
+					var pool =  poolKeys[f];
+					console.log("Recieved Message, Updating Pool: " + pool);
+					
+					//console.log("poolWorkerData length: " + poolWorkerData.length);
+					for (var i = 0; i < poolWorkerData.length; i++) {
+						if (poolWorkerData[i].key === pool) {
+							poolWorkerData[i].values.shift();
+							poolWorkerData[i].values.push([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]);
+							if(poolWorkerChart.series[f].name == pool) {
+								//console.log("point added to workerChart: " + ([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]));
+								poolWorkerChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]);
+								//console.log("Updated poolWorkerChart: " + poolWorkerChart.series[f].name + "'s Data!");
+							}
+							break;
+						}
 					}
-					break;
-				}
-			}
-			console.log("poolBlockData length: " + poolBlockData.length);
-			for (var i = 0; i < poolBlockData.length; i++) {
-				if (poolBlockData[i].key === pool) {
-					poolBlockData[i].values.shift();
-					poolBlockData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
-					if(poolBlockChart.series[f].name == pool) {
-						poolBlockChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
-						console.log("Updated poolBlockChart: " + poolBlockChart.series[f].name + "'s Data!");
+					//console.log("poolHashrateData length: " + poolHashrateData.length);
+					for (var i = 0; i < poolHashrateData.length; i++) {
+						if (poolHashrateData[i].key === pool) {
+							poolHashrateData[i].values.shift();
+							poolHashrateData[i].values.push([time, pool in stats.pools ? stats.pools[pool].hashrate : 0]);
+							if(poolHashrateChart.series[f].name == pool) {
+								poolHashrateChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].hashrate : 0], true, true, true);
+								//console.log("Updated poolHashRateChart: " + poolHashrateChart.series[f].name + "'s Data!");
+							}
+							break;
+						}
 					}
-					break;
+					//console.log("poolBlockData length: " + poolBlockData.length);
+					for (var i = 0; i < poolBlockData.length; i++) {
+						if (poolBlockData[i].key === pool) {
+							poolBlockData[i].values.shift();
+							poolBlockData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+							if(poolBlockChart.series[f].name == pool) {
+								poolBlockChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+								//console.log("Updated poolBlockChart: " + poolBlockChart.series[f].name + "'s Data!");
+							}
+							break;
+						}
+					}
 				}
+				console.log("time to update graph: " + (new Date().getTime() - timeHolder));
 			}
-		}
-		console.log("time to update graph: " + (new Date().getTime() - timeHolder));
-	}
-	for (var pool in stats.pools) {
-		$('#statsValidShares' + pool).text(stats.pools[pool].poolStats.validShares);
-		$('#statsInvalidShares' + pool).text(stats.pools[pool].poolStats.invalidShares);
-		$('#statsValidBlocks' + pool).text(stats.pools[pool].poolStats.validBlocks);
-		$('#statsTotalPaid' + pool).text(Number(stats.pools[pool].poolStats.totalPaid).toFixed());
-		
-		$('#statsBlocksPending' + pool).text(stats.pools[pool].blocks.pending);
-		$('#statsBlocksConfirmed' + pool).text(stats.pools[pool].blocks.confirmed);
-		$('#statsBlocksOrphaned' + pool).text(stats.pools[pool].blocks.orphaned);
-	}
-	console.log("time to update static-stats: " + (new Date().getTime() - timeHolder));
+			for (var pool in stats.pools) {	
+				//Left statBox
+				$('#statsValidShares' + pool).text(stats.pools[pool].poolStats.validShares);
+				$('#statsInvalidShares' + pool).text(stats.pools[pool].poolStats.invalidShares);
+				$('#statsValidBlocks' + pool).text(stats.pools[pool].poolStats.validBlocks);
+				//Right statBox
+				$('#statsBlocksPending' + pool).text(stats.pools[pool].blocks.pending);
+				$('#statsBlocksConfirmed' + pool).text(stats.pools[pool].blocks.confirmed);
+				$('#statsBlocksOrphaned' + pool).text(stats.pools[pool].blocks.orphaned);
+			}
+			console.log("time to update static-stats: " + (new Date().getTime() - timeHolder));
+		});
+	});
 });

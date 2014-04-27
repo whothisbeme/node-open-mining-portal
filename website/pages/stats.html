@@ -76,7 +76,6 @@
                     <div><i class="fa fa-smile-o"></i>Valid Shares: <span id="statsValidShares{{=pool}}">{{=it.stats.pools[pool].poolStats.validShares}}</span></div>
                     <div><i class="fa fa-frown-o"></i>Invalid Shares: <span id="statsInvalidShares{{=pool}}">{{=it.stats.pools[pool].poolStats.invalidShares}}</span></div>
 					<div><i class="fa fa-th-large"></i>Valid Blocks: <span id="statsValidBlocks{{=pool}}">{{=it.stats.pools[pool].poolStats.validBlocks}}</span></div>
-					<div><i class="fa fa-money"></i>Paid: <span id="statsTotalPaid{{=pool}}">-</span><span id="statsSymbol{{=pool}}"> {{=it.stats.pools[pool].symbol}}</span></div>
                 </div>
                 {{ } }}
 			</div>
@@ -98,7 +97,19 @@
 			</div>
 		</div>
 	</div>
+</div>
 
+<div class="pure-form pure-g-r" id="topStats">
+	<div class="pure-u-1-4">
+		<div>
+			<button type="submit" class="pure-button">Show stats</button>
+		</div>
+    </div>
+    <div class="pure-u-3-4">
+		<div>
+			<input class="pure-input-1" type="text" placeholder="Address">
+		</div>
+    </div>
 </div>
 
 <div class="pure-g-r" id="bottomCharts">
