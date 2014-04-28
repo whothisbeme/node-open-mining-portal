@@ -6,7 +6,7 @@ var poolBlockPerHourData;
 var poolWorkerChart;
 var poolHashrateChart;
 var poolBlockPendingChart;
-var poolBlockConfirmedChart;
+var poolBlockPerHourChart;
 
 var statData = [];
 var poolKeys = [];
@@ -614,9 +614,9 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 			for (var i = 0; i < poolBlockPerHourData.length; i++) {
 				if (poolBlockPerHourData[i].key === pool) {
 					poolBlockPerHourData[i].values.shift();
-					poolBlockPerHourData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+					poolBlockPerHourData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.confirmed : 0]);
 					if(poolBlockPerHourChart.series[f].name == pool) {
-						poolBlockPerHourChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+						poolBlockPerHourChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.confirmed : 0]);
 						poolBlockPerHourChart.series[f].update({pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - 3)});
 						//console.log("Updated poolBlockPerHourChart: " + poolBlockPerHourChart.series[f].name + "'s Data!");
 					}
