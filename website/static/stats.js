@@ -6,7 +6,7 @@ var poolBlockPerHourData;
 var poolWorkerChart;
 var poolHashrateChart;
 var poolBlockPendingChart;
-var poolBlockPerHourChart;
+var poolBlockConfirmedChart;
 
 var statData = [];
 var poolKeys = [];
@@ -116,7 +116,7 @@ function buildChartData(interval){
     poolWorkerData = [];
     poolHashrateData = [];
     poolBlockPendingData = [];
-	poolBlockConfirmedData = [];
+	poolBlockPerHourData = [];
 
     for (var pool in pools){
         poolWorkerData.push({
@@ -131,7 +131,7 @@ function buildChartData(interval){
             key: pool,
             values: pools[pool].blocksPending
         });
-		poolBlockConfirmedData.push({
+		poolBlockPerHourData.push({
             key: pool,
             values: pools[pool].blocksConfirmed
         });
@@ -520,8 +520,8 @@ function displayCharts(){
 		});
 		poolBlockPerHourChart.addSeries({
             type: 'column',
-            name: poolBlockConfirmedData[i].key,
-            data: poolBlockConfirmedData[i].values,
+            name: poolBlockPerHourData[i].key,
+            data: poolBlockPerHourData[i].values,
 			pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - 3) //Adjust width of bars need to do this more than once
 		});
 	}
@@ -597,14 +597,28 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 					break;
 				}
 			}
-			//console.log("poolBlockConfirmedData length: " + poolBlockConfirmedData.length);
-			for (var i = 0; i < poolBlockConfirmedData.length; i++) {
-				if (poolBlockConfirmedData[i].key === pool) {
-					poolBlockConfirmedData[i].values.shift();
-					poolBlockConfirmedData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+			//console.log("poolBlockPendingData length: " + poolBlockPerHourData.length);
+			for (var i = 0; i < poolBlockPendingData.length; i++) {
+				if (poolBlockPendingData[i].key === pool) {
+					poolBlockPendingData[i].values.shift();
+					poolBlockPendingData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
 					if(poolBlockPendingChart.series[f].name == pool) {
 						poolBlockPendingChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+						poolBlockPendingChart.series[f].update({pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - 3)});
 						//console.log("Updated poolBlockPendingChart: " + poolBlockPendingChart.series[f].name + "'s Data!");
+					}
+					break;
+				}
+			}
+			//console.log("poolBlockPerHourData length: " + poolBlockPerHourData.length);
+			for (var i = 0; i < poolBlockPerHourData.length; i++) {
+				if (poolBlockPerHourData[i].key === pool) {
+					poolBlockPerHourData[i].values.shift();
+					poolBlockPerHourData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+					if(poolBlockPerHourChart.series[f].name == pool) {
+						poolBlockPerHourChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
+						poolBlockPerHourChart.series[f].update({pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - 3)});
+						//console.log("Updated poolBlockPerHourChart: " + poolBlockPerHourChart.series[f].name + "'s Data!");
 					}
 					break;
 				}
