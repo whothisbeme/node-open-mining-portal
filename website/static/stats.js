@@ -12,20 +12,21 @@ var statData = [];
 var poolKeys = [];
 
 var timeHolder; //Temporary
-
+var columnBuffer = 5;
 
 function buildBlocksPerHourChart() {
-
-	//First try to guess updateInterval
-	var guessedUpdateInterval = (statData[1].time - statData[0].time); 
-	var guessedHistoryRetentionTime = (statData.length * guessedUpdateInterval);
-	var guessedHoursHTR = (guessedHistoryRetentionTime / 3600);
-	console.log("Guessed updateInterval is: " + guessedUpdateInterval + " seconds.");
-	console.log("Guessed HistoryRetention is set to: " + guessedHistoryRetentionTime + " seconds.");
-	console.log("Guessed Hours in history retention set to: " + guessedHoursHTR.toFixed() + " hours.");
-	
-	var sliceCounter = 10;
-	
+    "use strict";
+    //First try to guess updateInterval
+    var guessedUpdateInterval, guessedHistoryRetentionTime, guessedHoursHTR;
+    guessedUpdateInterval = (statData[1].time - statData[0].time);
+    guessedHistoryRetentionTime = (statData.length * guessedUpdateInterval);
+    guessedHoursHTR = (guessedHistoryRetentionTime / 3600);
+    console.log("Guessed updateInterval is: " + guessedUpdateInterval + " seconds.");
+    console.log("Guessed HistoryRetention is set to: " + guessedHistoryRetentionTime + " seconds.");
+    console.log("Guessed Hours in history retention set to: " + guessedHoursHTR.toFixed() + " hours.");
+    
+    var sliceCounter = 10;
+    
 	var sliceTimes = [];
 	var statDataChunks = [];
 	var timeNow = (Date.now() / 1000);
@@ -140,10 +141,10 @@ function buildChartData(interval){
 
 function removeSeries() {
 	 for (var p = 0; p < poolKeys.length; p++){
-		poolWorkerChart.series[p].remove(false);
-		poolHashrateChart.series[p].remove(false);
-		poolBlockPendingChart.series[p].remove(false);
-		poolBlockPerHourChart.series[p].remove(false);
+		poolWorkerChart.series[0].remove(false);
+		poolHashrateChart.series[0].remove(false);
+		poolBlockPendingChart.series[0].remove(false);
+		poolBlockPerHourChart.series[0].remove(false);
 	 }
 }
 
@@ -276,6 +277,7 @@ function createCharts() {
 		},
 		plotOptions: {
 			area: {
+                stacking: 'normal',
 				lineWidth: 1,
 				marker: {
 					enabled: false
@@ -421,10 +423,11 @@ function createCharts() {
 		},
 		plotOptions: {
 			 column: {
-					pointWidth: 15,
-					pointRange: 0,
-					pointPadding: 0,
-					borderWidth: 0
+                stacking: 'normal',
+                pointWidth: 15,
+                pointRange: 0,
+                pointPadding: 0,
+                borderWidth: 0
 			}
 		}, 
 		series: []
@@ -487,10 +490,11 @@ function createCharts() {
 		},
 		plotOptions: {
 			 column: {
-					pointWidth: 15,
-					pointRange: 0,
-					pointPadding: 0,
-					borderWidth: 0
+                stacking: 'normal',
+                pointWidth: 15,
+                pointRange: 0,
+                pointPadding: 0,
+                borderWidth: 0
 			}
 		}, 
 		series: []
@@ -504,7 +508,7 @@ function displayCharts(){
             type: 'area',
             name: poolWorkerData[i].key,
             data: poolWorkerData[i].values,
-			lineWidth: 2
+			lineWidth: 2,
 		});
 		poolHashrateChart.addSeries({
             type: 'spline',
@@ -516,13 +520,13 @@ function displayCharts(){
             type: 'column',
             name: poolBlockPendingData[i].key,
             data: poolBlockPendingData[i].values,
-			pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - 3) //Adjust width of bars need to do this more than once
+			pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - columnBuffer) //Adjust width of bars need to do this more than once
 		});
 		poolBlockPerHourChart.addSeries({
             type: 'column',
             name: poolBlockPerHourData[i].key,
             data: poolBlockPerHourData[i].values,
-			pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - 3) //Adjust width of bars need to do this more than once
+			pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - columnBuffer) //Adjust width of bars need to do this more than once
 		});
 	}
 }
@@ -535,7 +539,7 @@ $(function() {
  $.getJSON('/api/pool_stats', function (data) {
 	statData = data;
 	console.log("Charts created..");
-	buildBlocksPerHourChart();
+	//buildBlocksPerHourChart();
 	buildChartData(3600); //Set interval
 	console.log("Chart data built..");
 	displayCharts();
@@ -576,10 +580,10 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 				if (poolWorkerData[i].key === pool) {
 					poolWorkerData[i].values.shift();
 					poolWorkerData[i].values.push([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]);
-					if(poolWorkerChart.series[f].name == pool) {
+					if(poolWorkerChart.series[f].name === pool) {
 						console.log("length of series: " + poolWorkerChart.series.length);
 						//console.log("point added to workerChart: " + ([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]));
-						poolWorkerChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]);
+						poolWorkerChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].workerCount : 0], true, true, true);
 						//console.log("Updated poolWorkerChart: " + poolWorkerChart.series[f].name + "'s Data!");
 					}
 					break;
@@ -590,7 +594,7 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 				if (poolHashrateData[i].key === pool) {
 					poolHashrateData[i].values.shift();
 					poolHashrateData[i].values.push([time, pool in stats.pools ? stats.pools[pool].hashrate : 0]);
-					if(poolHashrateChart.series[f].name == pool) {
+					if(poolHashrateChart.series[f].name === pool) {
 						poolHashrateChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].hashrate : 0], true, true, true);
 						//console.log("Updated poolHashRateChart: " + poolHashrateChart.series[f].name + "'s Data!");
 					}
@@ -602,9 +606,9 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 				if (poolBlockPendingData[i].key === pool) {
 					poolBlockPendingData[i].values.shift();
 					poolBlockPendingData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
-					if(poolBlockPendingChart.series[f].name == pool) {
-						poolBlockPendingChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
-						poolBlockPendingChart.series[f].update({pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - 3)});
+					if(poolBlockPendingChart.series[f].name === pool) {
+						poolBlockPendingChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0], true, true, true);
+						poolBlockPendingChart.series[f].update({pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - columnBuffer)});
 						//console.log("Updated poolBlockPendingChart: " + poolBlockPendingChart.series[f].name + "'s Data!");
 					}
 					break;
@@ -615,9 +619,9 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 				if (poolBlockPerHourData[i].key === pool) {
 					poolBlockPerHourData[i].values.shift();
 					poolBlockPerHourData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.confirmed : 0]);
-					if(poolBlockPerHourChart.series[f].name == pool) {
-						poolBlockPerHourChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.confirmed : 0]);
-						poolBlockPerHourChart.series[f].update({pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - 3)});
+					if(poolBlockPerHourChart.series[f].name === pool) {
+						poolBlockPerHourChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.confirmed : 0], true, true, true);
+						poolBlockPerHourChart.series[f].update({pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - columnBuffer)});
 						//console.log("Updated poolBlockPerHourChart: " + poolBlockPerHourChart.series[f].name + "'s Data!");
 					}
 					break;
