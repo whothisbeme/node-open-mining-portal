@@ -140,11 +140,11 @@ function buildChartData(interval){
 }
 
 function removeSeries() {
-	 for (var p = 0; p < poolKeys.length; p++){
-		poolWorkerChart.series[0].remove(false);
-		poolHashrateChart.series[0].remove(false);
-		poolBlockPendingChart.series[0].remove(false);
-		poolBlockPerHourChart.series[0].remove(false);
+	 for (var p = poolKeys.length-1; p > -1; p--){
+		poolWorkerChart.series[p].remove(false);
+		poolHashrateChart.series[p].remove(false);
+		poolBlockPendingChart.series[p].remove(false);
+		poolBlockPerHourChart.series[p].remove(false);
 	 }
 }
 
@@ -583,7 +583,7 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 					if(poolWorkerChart.series[f].name === pool) {
 						console.log("length of series: " + poolWorkerChart.series.length);
 						//console.log("point added to workerChart: " + ([time, pool in stats.pools ? stats.pools[pool].workerCount : 0]));
-						poolWorkerChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].workerCount : 0], true, true, true);
+						poolWorkerChart.series[f].setData(poolWorkerData[i].values, true);
 						//console.log("Updated poolWorkerChart: " + poolWorkerChart.series[f].name + "'s Data!");
 					}
 					break;
@@ -607,9 +607,9 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 					poolBlockPendingData[i].values.shift();
 					poolBlockPendingData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0]);
 					if(poolBlockPendingChart.series[f].name === pool) {
-						poolBlockPendingChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.pending : 0], true, true, true);
-						poolBlockPendingChart.series[f].update({pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - columnBuffer)});
-						//console.log("Updated poolBlockPendingChart: " + poolBlockPendingChart.series[f].name + "'s Data!");
+						poolBlockPendingChart.series[f].setData(poolBlockPendingData[i].values, false);
+						poolBlockPendingChart.series[f].update({pointWidth: ((poolBlockPendingChart.chartWidth / statData.length) - columnBuffer)}, true);
+                        //console.log("Updated poolBlockPendingChart: " + poolBlockPendingChart.series[f].name + "'s Data!");
 					}
 					break;
 				}
@@ -620,9 +620,9 @@ statsSource.addEventListener('message', function(e){ //Stays active when hot-swa
 					poolBlockPerHourData[i].values.shift();
 					poolBlockPerHourData[i].values.push([time, pool in stats.pools ? stats.pools[pool].blocks.confirmed : 0]);
 					if(poolBlockPerHourChart.series[f].name === pool) {
-						poolBlockPerHourChart.series[f].addPoint([time, pool in stats.pools ? stats.pools[pool].blocks.confirmed : 0], true, true, true);
-						poolBlockPerHourChart.series[f].update({pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - columnBuffer)});
-						//console.log("Updated poolBlockPerHourChart: " + poolBlockPerHourChart.series[f].name + "'s Data!");
+						poolBlockPerHourChart.series[f].setData(poolBlockPerHourData[i].values, false);
+						poolBlockPerHourChart.series[f].update({pointWidth: ((poolBlockPerHourChart.chartWidth / statData.length) - columnBuffer)}, true);
+                        //console.log("Updated poolBlockPerHourChart: " + poolBlockPerHourChart.series[f].name + "'s Data!");
 					}
 					break;
 				}
