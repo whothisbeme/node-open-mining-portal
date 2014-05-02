@@ -6,7 +6,13 @@ $(function(){
         $('a[href="/' + page + '"]').parent().addClass('pure-menu-selected');
         $.get("/get_page", {id: page}, function(data){
             $('main').html(data);
-        }, 'html')
+        }, 'html');
+        if(poolBlockPerHourChart != null) { //Crude fix to charts not displaying properly
+            poolWorkerChart.destroy();
+            poolHashrateChart.destroy();
+            poolBlockPendingChart.destroy();
+            poolBlockPerHourChart.destroy();
+        }
     };
 
     $('.hot-swapper').click(function(event){
@@ -26,5 +32,4 @@ $(function(){
     });
 
     window.statsSource = new EventSource("/api/live_stats");
-
 });
