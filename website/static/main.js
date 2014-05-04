@@ -7,11 +7,13 @@ $(function(){
         $.get("/get_page", {id: page}, function(data){
             $('main').html(data);
         }, 'html');
-        if(poolBlockPerHourChart != null) { //Crude fix to charts not displaying properly
+        if(typeof poolBlockPerHourChart !== 'undefined') { //Crude fix to charts not displaying properly
+            console.log("Charts are defined..");
             poolWorkerChart.destroy();
             poolHashrateChart.destroy();
             poolBlockPendingChart.destroy();
             poolBlockPerHourChart.destroy();
+            console.log("Charts deleted..");
         }
     };
 
