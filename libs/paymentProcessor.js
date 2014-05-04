@@ -221,9 +221,14 @@ function SetupForPool(logger, poolOptions, setupFinished){
                             return;
                         }
                         else if (round.blockHash !== tx.result.blockhash){
-                            logger.error(logSystem, logComponent, 'Daemon reports blockhash ' + tx.result.blockhash
-                                + ' for tx ' + round.txHash + ' is not the one we have stored: ' + round.blockHash);
-                            return;
+                            logger.debug(logSystem, logComponent, 'Daemon reports blockhash ' + tx.result.blockhash
+                                + ' for tx ' + round.txHash + ' is not the one we have stored: ' + round.blockHash + ' this block could be an orphan.');
+                            if(tx.result.details[0].category === 'orphan') {
+                                logger.debug(logSystem, logComponent, 'Transaction ' + round.txHash + ' is a orphan.');
+                            } else if(tx.result.details[0].category !== 'orphan'){
+                                logger.error(logSystem, logComponent, 'Transaction ' + round.txHash + ' reported as category ' + tx.result.details[0].category)
+                                return;
+                            }
                         }
                         else if (!(tx.result.details instanceof Array)){
                             logger.error(logSystem, logComponent, 'Details array missing from transaction '
@@ -231,19 +236,59 @@ function SetupForPool(logger, poolOptions, setupFinished){
                             return;
                         }
 
+                        //Try to get details from gettransaction that contains the set pools address
                         var generationTx = tx.result.details.filter(function(tx){
                             return tx.address === poolOptions.address;
                         })[0];
 
                         if (!generationTx){
-                            logger.error(logSystem, logComponent, 'Missing output details to pool address for transaction '
-                                + round.txHash);
-                            return;
+                            logger.debug(logSystem, logComponent, 'Missing output details to pool address for transaction '
+                                + round.txHash + ' we are going to check for vout but you might be completely fucked...');
+                            //Custom
+                            if (tx.result.vout instanceof Array){
+                                logger.debug(logSystem, logComponent, 'Vout array is in transaction ' + round.txHash + ' its looking good.');
+                                //logger.debug(logSystem, logComponent, 'tx.result.details: ' + tx.result.details);
+                                //logger.debug(logSystem, logComponent, 'tx.result.details[0].category: ' + tx.result.details[0].category);
+                                var generationTx = tx.result.vout.filter(function(vout){
+                                    //logger.debug(logSystem, logComponent, 'vout.scriptPubKey.addresses is : ' + '-' + vout.scriptPubKey.addresses + '-');
+                                    //logger.debug(logSystem, logComponent, 'poolOptions.address: ' + poolOptions.address);
+                                    if(vout.scriptPubKey.addresses.toString() === poolOptions.address){
+                                        //logger.debug(logSystem, logComponent, 'vout address matches poolAddress!');
+                                        return vout;
+                                    }
+                                })[0];
+                            }
+
+                            //logger.debug(logSystem, logComponent, 'generationTx: ' + generationTx);
+
+                            if (!generationTx){
+                                logger.error(logSystem, logComponent, 'Still missing output details to pool address for transaction '
+                                    + round.txHash + ' you are fucked.');
+                                return;
+                            } else {
+                                logger.debug(logSystem, logComponent, 'Checking for vout worked! You are no longer fucked.');
+                            }
                         }
 
-                        round.category = generationTx.category;
+                        if(typeof generationTx.category !== 'undefined') {
+                            //logger.debug(logSystem, logComponent, 'Found generationTx.category');
+                            round.category = generationTx.category;
+                        }
+                        else if(tx.result.details.length === 1) {
+                            //logger.debug(logSystem, logComponent, 'tx.result.details.length: ' + tx.result.details.length);
+                            //logger.debug(logSystem, logComponent, 'tx.result.details[0].category: ' + tx.result.details[0].category);
+                            round.category = tx.result.details[0].category;
+                        }
+
                         if (round.category === 'generate') {
-                            round.reward = generationTx.amount;
+                            if(typeof generationTx.amount !== 'undefined') {
+                                //logger.debug(logSystem, logComponent, 'Found generationTx.amount');
+                                round.reward = generationTx.amount;
+                            }
+                            else if(typeof generationTx.value !== 'undefined') {
+                                //logger.debug(logSystem, logComponent, 'Found generationTx.value');
+                                round.reward = generationTx.value;
+                            }
                         }
 
 
@@ -359,6 +404,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
                     }
 
                     if (Object.keys(addressAmounts).length === 0){
+                        logger.debug(logSystem, logComponent, 'Object.keys(addressAmounts).length === 0?? Returning!');
                         callback(null, workers, rounds);
                         return;
                     }
@@ -366,7 +412,6 @@ function SetupForPool(logger, poolOptions, setupFinished){
                     daemon.cmd('sendmany', [addressAccount || '', addressAmounts], function (result) {
                         if (result.error && result.error.code === -6) {
                             var higherPercent = withholdPercent + 0.01;
-                            console.log('asdfasdfsadfasdf');
                             logger.warning(logSystem, logComponent, 'Not enough funds to send out payments, decreasing rewards by '
                                 + (higherPercent * 100) + '% and retrying');
                             trySend(higherPercent);
