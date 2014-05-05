@@ -241,10 +241,6 @@ function SetupForPool(logger, poolOptions, setupFinished){
                         })[0];
 
                         if (!generationTx && tx.result.details.length === 1){
-                            generationTx = tx.result.details[0];
-                        }
-
-                        if (!generationTx && tx.result.details.length === 1){
                             if (tx.result.vout instanceof Array){
                                 var generationTx = tx.result.vout.filter(function(vout){
                                     if(vout.scriptPubKey.addresses.toString() === poolOptions.address){
@@ -261,7 +257,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
                         }
 
 
-                        round.category = generationTx.category;
+                        round.category = generationTx.category || tx.result.details[0].category;;
 
                         if (round.category === 'generate') {
                             round.reward = generationTx.amount || generationTx.value;
