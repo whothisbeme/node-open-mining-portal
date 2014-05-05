@@ -236,25 +236,12 @@ function SetupForPool(logger, poolOptions, setupFinished){
                             return;
                         }
 
-                        //Try to get details from gettransaction that contains the set pools address
                         var generationTx = tx.result.details.filter(function(tx){
                             return tx.address === poolOptions.address;
                         })[0];
 
-<<<<<<< HEAD
                         if (!generationTx && tx.result.details.length === 1){
                             generationTx = tx.result.details[0];
-=======
-
-                        if (!generationTx && tx.result.details.length === 1){
-                            generationTx = tx.result.details[0];
-                        }
-
-                        if (!generationTx){
-                            logger.error(logSystem, logComponent, 'Missing output details to pool address for transaction '
-                                + round.txHash);
-                            return;
->>>>>>> upstream/master
                         }
 
                         if (!generationTx && tx.result.details.length === 1){
@@ -267,8 +254,8 @@ function SetupForPool(logger, poolOptions, setupFinished){
                             }
 
                             if (!generationTx){
-                                logger.error(logSystem, logComponent, 'Still missing output details to pool address for transaction '
-                                    + round.txHash + ' you are fucked.');
+                                logger.error(logSystem, logComponent, 'Missing output details to pool address for transaction '
+                                    + round.txHash);
                                 return;
                             }
                         }
