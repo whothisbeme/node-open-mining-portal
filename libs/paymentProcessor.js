@@ -90,7 +90,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
                     callback();
                 }
                 catch(e){
-                    logger.error(logSystem, logComponent, 'Error detecting number of satoshis in a coin, cannot do payment processing');
+                    logger.error(logSystem, logComponent, 'Error detecting number of satoshis in a coin, cannot do payment processing. Tried parsing: ' + result.data);
                     callback(true);
                 }
 
@@ -241,8 +241,20 @@ function SetupForPool(logger, poolOptions, setupFinished){
                             return tx.address === poolOptions.address;
                         })[0];
 
+<<<<<<< HEAD
                         if (!generationTx && tx.result.details.length === 1){
                             generationTx = tx.result.details[0];
+=======
+
+                        if (!generationTx && tx.result.details.length === 1){
+                            generationTx = tx.result.details[0];
+                        }
+
+                        if (!generationTx){
+                            logger.error(logSystem, logComponent, 'Missing output details to pool address for transaction '
+                                + round.txHash);
+                            return;
+>>>>>>> upstream/master
                         }
 
                         if (!generationTx && tx.result.details.length === 1){
@@ -394,7 +406,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
                             trySend(higherPercent);
                         }
                         else if (result.error) {
-                            logger.error(logSystem, logComponent, 'Error trying to send payments wtih RCP sendmany '
+                            logger.error(logSystem, logComponent, 'Error trying to send payments with RPC sendmany '
                                 + JSON.stringify(result.error));
                             callback(true);
                         }
