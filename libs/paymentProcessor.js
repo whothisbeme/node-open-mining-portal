@@ -252,16 +252,16 @@ function SetupForPool(logger, poolOptions, setupFinished){
                                     }
                                 })[0];
                             }
+                        }
 
-                            if (!generationTx){
-                                logger.error(logSystem, logComponent, 'Missing output details to pool address for transaction '
-                                    + round.txHash);
-                                return;
-                            }
+                        if (!generationTx){
+                            logger.error(logSystem, logComponent, 'Missing output details to pool address for transaction '
+                                + round.txHash);
+                            return;
                         }
 
 
-                        round.category = generationTx.category || tx.result.details[0].category;
+                        round.category = generationTx.category;
 
                         if (round.category === 'generate') {
                             round.reward = generationTx.amount || generationTx.value;
@@ -380,7 +380,6 @@ function SetupForPool(logger, poolOptions, setupFinished){
                     }
 
                     if (Object.keys(addressAmounts).length === 0){
-                        logger.debug(logSystem, logComponent, 'Object.keys(addressAmounts).length === 0?? Returning!');
                         callback(null, workers, rounds);
                         return;
                     }
