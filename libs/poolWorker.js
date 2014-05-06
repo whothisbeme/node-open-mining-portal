@@ -13,7 +13,7 @@ module.exports = function(logger){
     var portalConfig = JSON.parse(process.env.portalConfig);
 
     var forkId = process.env.forkId;
-    
+
     var pools = {};
 
     var proxySwitch = {};
@@ -69,10 +69,10 @@ module.exports = function(logger){
 
                 if (newPool) {
                     oldPool.relinquishMiners(
-                        function (miner, cback) { 
+                        function (miner, cback) {
                             // relinquish miners that are attached to one of the "Auto-switch" ports and leave the others there.
                             cback(proxyPorts.indexOf(miner.client.socket.localPort.toString()) !== -1)
-                        }, 
+                        },
                         function (clients) {
                             newPool.attachMiners(clients);
                         }
@@ -98,7 +98,7 @@ module.exports = function(logger){
 
         var poolOptions = poolConfigs[coin];
 
-        var logSystem = 'Pool';
+        var logSystem = '';
         var logComponent = coin;
         var logSubCat = 'Thread ' + (parseInt(forkId) + 1);
 
@@ -193,10 +193,9 @@ module.exports = function(logger){
                 logger.debug(logSystem, logComponent, logSubCat, 'Block found: ' + data.blockHash);
 
             if (isValidShare)
-                logger.debug(logSystem, logComponent, logSubCat, 'Share accepted at diff ' + data.difficulty + '/' + data.shareDiff + ' by ' + data.worker + ' [' + data.ip + ']' );
-
+                logger.debug(logSystem, logComponent, data.ip + "|" + logComponent + "|200|" + data.difficulty);
             else if (!isValidShare)
-                logger.debug(logSystem, logComponent, logSubCat, 'Share rejected: ' + shareData);
+                logger.debug(logSystem, logComponent, data.ip + "|" + logComponent + "|401|" + data.difficulty);
 
             handlers.share(isValidShare, isValidBlock, data)
 
@@ -232,8 +231,8 @@ module.exports = function(logger){
 
 
         /*redisClient.on('error', function(err){
-            logger.debug(logSystem, logComponent, logSubCat, 'Pool configuration failed: ' + err);
-        });*/
+         logger.debug(logSystem, logComponent, logSubCat, 'Pool configuration failed: ' + err);
+         });*/
 
         redisClient.hgetall("proxyState", function(error, obj) {
             if (!error && obj) {

@@ -44,24 +44,21 @@ var PoolLogger = function (configuration) {
             subcat = realSubCat;
         }
 
-        var entryDesc = dateFormat(new Date(), 'yyyy-mm-dd HH:MM:ss') + ' [' + system + ']\t';
-        entryDesc = severityToColor(severity, entryDesc);
+        var entryDesc = Math.round((new Date()).getTime() / 1000) + '';
 
         var logString =
-                entryDesc +
-                ('[' + component + '] ').italic;
+            entryDesc +
+            ('');
 
         if (subcat)
-            logString += ('(' + subcat + ') ').bold.grey
+            logString += ('(' + subcat + ') ');
 
-        logString += text.grey;
 
-        console.log(logString);
+
+        console.log(entryDesc + ('|') + text);
 
 
     };
-
-    // public
 
     var _this = this;
     Object.keys(severityValues).forEach(function(logType){
