@@ -30,6 +30,7 @@ var PoolLogger = function (configuration) {
 
 
     var logLevelInt = severityValues[configuration.logLevel];
+    var logColors = configuration.logColors;
 
 
 
@@ -44,6 +45,7 @@ var PoolLogger = function (configuration) {
             subcat = realSubCat;
         }
 
+<<<<<<< HEAD
         var entryDesc = Math.round((new Date()).getTime() / 1000) + '';
 
         var logString =
@@ -53,11 +55,7 @@ var PoolLogger = function (configuration) {
         if (subcat)
             logString += ('(' + subcat + ') ');
 
-
-
         console.log(entryDesc + ('|') + text);
-
-
     };
 
     var _this = this;
